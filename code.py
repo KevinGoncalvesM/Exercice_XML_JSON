@@ -2,6 +2,8 @@ import os
 import json
 import logging
 
+
+
 #Fonction qui permet de notifier en logs que plusisurs JSON on le même nom
 def warning_dup(fichiers):
     set_fichiers = set() # Permet d'éviter tout doublon
@@ -25,6 +27,84 @@ def is_valid_json(file_path):
         logging.error(f"Erreur JSON dans '{file_path}': {e}")
         return False
 
+#Permet de deéterminer si le format demandé est conforme avec ceux des fichiers JSON
+def is_valid_format(file_path, file, format_dict):
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if len(data) != len(format_dict):
+        logging.error(f"Le fichier {file} ne correspond pas au format attendu, pas le même nombre de paramètre.")
+        return False
+
+    for key, value in data.items():
+        if key not in format_dict:
+            logging.error(f"Clé '{key}' dans le fichier {file}.")
+            return False
+        elif type(value) != format_dict[key]:
+            logging.error(f"Le type de la valeur pour la clé '{key}' dans {file} est incorrect : attendu {format_dict[key]}, mais trouvé {type(value)}.")
+            return False
+
+    keys_in_file = list(data.keys())
+    keys_in_reference = list(format_dict.keys())
+
+    if keys_in_reference != keys_in_file:
+        logging.error(f"L'ordre des clés dans le fichier {file} est incorrect")
+        return False
+
+    logging.info(f"Le fichier {file} est conforme au format attendu.")
+    return True
+
+
+def test1(path) :
+    logging.info("\nDébut du test 1 - Vérification des fichiers JSON ")
+
+    if not os.path.exists(path):
+        logging.error(f"Le dossier {path} n'existe pas")
+        exit(1)
+    files = os.listdir(path) #lecture des fichiers
+    if not files:
+        logging.error(f"Le dossier {path} est vide")
+        exit(1)
+    logging.info(f"Le nombre de fichiers trouvés dans {path} est {len(files)}")
+
+    warning_dup(files) #Appel de la fonction pour mettre en log les fichiers dupliqués
+    #
+    for file in files:
+        file_path = os.path.join(path, file)  # Chemin complet du fichier
+        path_issue = "../data/out_pb"
+        if file.endswith(".json"):  # Vérifier que c'est bien un fichier JSON
+            if is_valid_json(file_path):
+                logging.info(f"{file} -> fichier JSON valide")
+            else:
+                if not os.path.exists(path_issue):
+                    os.mkdir(path_issue)
+                os.rename(file_path, os.path.join(path_issue, file))  # Déplacement en cas d'erreur
+        else:
+            logging.error(f"{file} n'est pas un JSON")
+            if not os.path.exists(path_issue):
+                os.mkdir(path_issue)
+            os.rename(file_path, os.path.join(path_issue, file))
+
+def test2(path):
+    logging.info("\nDébut du test 2 - Vérification de la structure du JSON ")
+
+    files = os.listdir(path) #lecture des fichiers après le test 1
+    if not files:
+        logging.error(f"Le dossier {path} est vide")
+        exit(1)
+
+    format_reference = {"id" : int, "timestamp" : int, "direction" : str, "content" : str, "contact" : str} #Format de base attendu
+
+    for file in files:
+        file_path = os.path.join(path, file)  # Chemin complet du fichier
+        path_issue = "../data/out_pb"
+
+        if not is_valid_format(file_path, file, format_reference):
+            if not os.path.exists(path_issue):
+                os.mkdir(path_issue)
+            os.rename(file_path, os.path.join(path_issue, file))
+
+
 #Mise en place des logs
 logging.basicConfig(
     filename="../journaux.log",
@@ -32,29 +112,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-logging.info("Début du test 1 - Vérification des fichiers JSON \n")
+path = "../data/out"  # chemin pour accéder aux fichiers JSON
 
-path = "../data/out" #chemin pour accéder aux fichiers JSON
-files = os.listdir(path) #lecture des fichiers
-logging.info(f"Le nombre de fichiers trouvés dans {path} est {len(files)}")
-
-warning_dup(files) #Appel de la fonction pour mettre en log les fichiers dupliqués
-#
-for file in files:
-    file_path = os.path.join(path, file)  # Chemin complet du fichier
-    path_issue = "../data/out_pb"
-    if file.endswith(".json"):  # Vérifier que c'est bien un fichier JSON
-        if is_valid_json(file_path):
-            print(f"{file} -> fichier JSON valide.")
-            logging.info(f"{file} -> fichier JSON valide")
-        else:
-            print(f"{file} est invalide")
-            if not os.path.exists(path_issue):
-                os.mkdir(path_issue)
-            os.rename(file_path, os.path.join(path_issue, file))  # Déplacement en cas d'erreur
-    else:
-        print(f"{file} n'est pas un JSON")
-        logging.error(f"{file} n'est pas un JSON")
-        if not os.path.exists(path_issue):
-            os.mkdir(path_issue)
-        os.rename(file_path, os.path.join(path_issue, file))
+test1(path)
+test2(path)
