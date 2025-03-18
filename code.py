@@ -20,13 +20,13 @@ def warning_dup(fichiers):
         logging.warning(f"Plusieurs exemplaires détectés pour le fichier : {fichier}")
 
 #permet de voir si le JSON est valide (on parse le JSON)
-def is_valid_json(file_path):
+def is_valid_json(file_path, file):
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             json.load(f)
         return True
     except:
-        logging.error(f"Erreur JSON dans '{file_path}'")
+        logging.error(f"Fichier JSON invalide : {file}")
         return False
 
 #Permet de deéterminer si le format demandé est conforme avec ceux des fichiers JSON
@@ -127,6 +127,38 @@ def contact_verif(data, file, nom):
         return False
     return True
 
+def comparaison_ligne(data_json, data_msg_db, dict_contact_db, fichier):
+
+    is_false = 0
+
+    id = data_json["id"]-1
+
+    if data_json["timestamp"] != data_msg_db[id][1]:
+        logging.error(f"{fichier} : Le timestamp {data_json['timestamp']} ne correspond pas au timestamp de la bdd : {data_msg_db[id][1]}")
+        is_false += 1
+
+    if data_json["direction"] != data_msg_db[id][2]:
+        logging.error(f"{fichier} : La direction {data_json['direction']} ne correspond pas à la direction de la bdd : {data_msg_db[id][2]}")
+        is_false += 1
+
+    print(data_msg_db[id][3])
+    encoded_msg = base64.b64encode(data_msg_db[id][3].encode("utf-8")).decode("utf-8")
+    print(encoded_msg)
+
+    if data_json["content"] != encoded_msg:
+        logging.error(f"{fichier} : Le contenu {data_json['content']} ne correspond pas au contenu de la BDD : {encoded_msg}")
+        is_false += 1
+
+    if data_json["contact"] != dict_contact_db[data_msg_db[id][4]]:
+        logging.error(f"{fichier} : Le nom {data_json['contact']} ne correspond pas au contact de la bdd : {dict_contact_db[data_msg_db[id][4]]}")
+        is_false += 1
+
+    if is_false > 0:
+        return False
+
+    logging.info((f"Le fichier {fichier} est définitvement correct"))
+    return True
+
 
 
 def test1(path) :
@@ -147,7 +179,7 @@ def test1(path) :
         file_path = os.path.join(path, file)  # Chemin complet du fichier
         path_issue = "../data/out_pb"
         if file.endswith(".json"):  # Vérifier que c'est bien un fichier JSON
-            if is_valid_json(file_path):
+            if is_valid_json(file_path, file):
                 logging.info(f"{file} -> fichier JSON valide")
             else:
                 if not os.path.exists(path_issue):
@@ -196,12 +228,7 @@ def test3(path_json, path_db):
 
     #Recupération des données de la BDD
     requete_contact_db = request_db(path_db, file_db, "contact")
-    requet_messages_db = request_db(path_db, file_db, "messages")
     requete_sqlite_sequence = request_db(path_db, file_db, "sqlite_sequence")
-
-    print(requete_contact_db)
-    print(requet_messages_db)
-    print(requete_sqlite_sequence)
 
     nb_messages = requete_sqlite_sequence[0][1]
     nb_contact = requete_sqlite_sequence[1][1]
@@ -250,6 +277,43 @@ def test3(path_json, path_db):
             if not os.path.exists(path_issue):
                 os.mkdir(path_issue)
             os.rename(file_path_json, os.path.join(path_issue, file_json))
+        else:
+            logging.info((f"Le fichier {file_json} passe le test 3.a "))
+
+
+def test4(path_json, path_db):
+    logging.info("\nDébut du test 3b - Vérification de la mise en relation des données ")
+
+    #Vérification des dossier
+    #IN
+    if not os.path.exists(path_db):
+        logging.error(f"Le dossier {path_db} n'existe pas")
+        exit(1)
+    file_db = os.listdir(path_db)
+
+    #OUT
+    files_json = os.listdir(path_json) #lecture des fichiers après le test 1
+    if not files_json:
+        logging.error(f"Le dossier {path_json} est vide")
+        exit(1)
+
+    requet_messages_db = request_db(path_db, file_db, "messages")
+    requete_contact_db = request_db(path_db, file_db, "contact")
+
+    db_contact = dict(requete_contact_db)
+
+    for file_json in files_json:
+
+        file_path_json = os.path.join(path_json, file_json)
+        path_issue_json = "../data/out_pb"
+
+        with open(file_path_json, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if not comparaison_ligne(data, requet_messages_db, db_contact, file_json):
+            if not os.path.exists(path_issue_json):
+                os.mkdir(path_issue_json)
+            os.rename(file_path_json, os.path.join(path_issue_json, file_json))
 
 
 #Mise en place des logs
@@ -265,3 +329,4 @@ path_in = "../data/in"
 test1(path_out)
 test2(path_out)
 test3(path_out, path_in)
+test4(path_out, path_in)
