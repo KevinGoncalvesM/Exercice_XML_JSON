@@ -141,9 +141,7 @@ def comparaison_ligne(data_json, data_msg_db, dict_contact_db, fichier):
         logging.error(f"{fichier} : La direction {data_json['direction']} ne correspond pas à la direction de la bdd : {data_msg_db[id][2]}")
         is_false += 1
 
-    print(data_msg_db[id][3])
     encoded_msg = base64.b64encode(data_msg_db[id][3].encode("utf-8")).decode("utf-8")
-    print(encoded_msg)
 
     if data_json["content"] != encoded_msg:
         logging.error(f"{fichier} : Le contenu {data_json['content']} ne correspond pas au contenu de la BDD : {encoded_msg}")
@@ -315,6 +313,28 @@ def test4(path_json, path_db):
                 os.mkdir(path_issue_json)
             os.rename(file_path_json, os.path.join(path_issue_json, file_json))
 
+def resultat(chemin_out, chemin_out_pb):
+    if not os.path.exists(chemin_out):
+        logging.error(f"Le dossier {chemin_out} n'existe pas")
+        exit(1)
+    files_out = os.listdir(chemin_out)
+
+    if not files_out:
+        print("Aucun fichier validé")
+    else:
+        print("Les fichiers ayant validé les tests sont :")
+        for file_out in files_out:
+            print(f"{file_out}")
+
+    if not os.path.exists(chemin_out_pb):
+        print("Aucun fichier erroné")
+    else:
+        files_out_pb = os.listdir(chemin_out_pb)
+
+        print("Les fichiers n'ayant pas validé les tests sont :")
+        for file_out_pb in files_out_pb:
+            print(f"{file_out_pb}")
+
 
 #Mise en place des logs
 logging.basicConfig(
@@ -324,9 +344,11 @@ logging.basicConfig(
 )
 
 path_out = "../data/out"  # chemin pour accéder aux fichiers JSON
+path_out_pb = "../data/out_pb"  # chemin pour accéder aux fichiers JSON
 path_in = "../data/in"
 
 test1(path_out)
 test2(path_out)
 test3(path_out, path_in)
 test4(path_out, path_in)
+resultat(path_out, path_out_pb)
