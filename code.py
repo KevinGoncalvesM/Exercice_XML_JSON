@@ -203,8 +203,8 @@ def comparaison_ligne_opti(data_json, data_msg_db, data_contact_db, fichier): #I
         logging.error(f"{fichier} : Le contenu {data_json['content']} ne correspond pas au contenu de la BDD : {encoded_msg}")
         is_false += 1
 
-    if data_json["contact"] != data_contact_db[0][1]:
-        logging.error(f"{fichier} : Le nom {data_json['contact']} ne correspond pas au contact de la bdd : {data_contact_db[0][4]}")
+    if data_contact_db[0][0] != data_msg_db[0][-1]:
+        logging.error(f"{fichier} : Le id_nom {data_contact_db[0][0]} ne correspond pas au contact de la bdd : {data_msg_db[0][-1]}")
         is_false += 1
 
     if is_false > 0:
@@ -404,6 +404,7 @@ def test_3_4_opti(path_json, path_db):
         requete_contact_db = request_db_opti(path_db, file_db, "contact", "name", name)
 
         if requet_messages_db is None or requet_messages_db == [] or requete_contact_db is None or requete_contact_db == []: #ici on regarde si la requete est possible et si elle ne renvoie pas rien
+            logging.error(f"Échec de la requête SQL pour le fichier '{file_json}'. ID: {id}, Nom: '{name}'. Aucune correspondance trouvée dans la base de données.")
             if not os.path.exists(path_issue_json):
                 os.mkdir(path_issue_json)
             os.rename(file_path_json, os.path.join(path_issue_json, file_json))
