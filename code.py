@@ -114,7 +114,7 @@ def id_msg_verif(data, file, max_id, id_message_json):
         return False
 
     if data["id"] in id_message_json: #on vérifie si l'id est déjà dans le set (doublon)
-        logging.warning(f"{file} : Attention, l'id_message {data['id']} est un doublon dans le fichier {id_message_json[data["id"]] }")
+        logging.warning(f"{file} : Attention, l'id_message {data['id']} est un doublon dans le fichier {id_message_json[data['id']] }")
     else:
         id_message_json[data["id"]] = file
     return True
